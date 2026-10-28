@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Công cụ tính cỡ mẫu nghiên cứu</title>
+<style>
+  :root { font-family: Arial, sans-serif; color: #1f2937; }
+  body { margin: 0; background: #f3f6fa; }
+  main { max-width: 820px; margin: 28px auto; padding: 22px; }
+  .card { background: white; border: 1px solid #dbe2ea; border-radius: 14px; padding: 22px; box-shadow: 0 4px 18px #1f293710; }
+  h1 { font-size: 1.65rem; margin: 0 0 8px; }
+  .sub { color: #536273; line-height: 1.5; margin-bottom: 22px; }
+  label { display: block; font-weight: 600; margin: 15px 0 6px; }
+  input, select { width: 100%; box-sizing: border-box; padding: 11px; border: 1px solid #bdc8d5; border-radius: 8px; font-size: 1rem; background: white; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  button { margin-top: 20px; border: 0; border-radius: 8px; padding: 12px 18px; font-weight: 700; font-size: 1rem; cursor: pointer; background: #176b45; color: white; }
+  button:hover { background: #105536; }
+  .result { margin-top: 20px; background: #edf8f1; border: 1px solid #b9e0c7; border-radius: 10px; padding: 16px; }
+  .n { font-size: 2rem; font-weight: 800; color: #14532d; }
+  .formula { font-family: Consolas, monospace; overflow-wrap: anywhere; }
+  .note { color: #4b5563; font-size: .92rem; line-height: 1.55; }
+  .hidden { display: none; }
+  @media (max-width: 600px) { main { padding: 12px; } .grid { grid-template-columns: 1fr; } .card { padding: 16px; } }
+</style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <h1>Công cụ tính cỡ mẫu nghiên cứu khoa học</h1>
+    <p class="sub">Tính cỡ mẫu tối thiểu để ước lượng một tỷ lệ hoặc một trung bình. Công cụ dùng công thức thống kê cơ bản; hãy xác nhận công thức phù hợp với thiết kế nghiên cứu của bạn.</p>
+
+    <label for="kind">Mục tiêu ước lượng</label>
+    <select id="kind">
+      <option value="proportion">Ước lượng một tỷ lệ</option>
+      <option value="mean">Ước lượng một trung bình</option>
+    </select>
+
+    <div class="grid">
+      <div>
+        <label for="confidence">Mức tin cậy</label>
+        <select id="confidence">
+          <option value="1.645">90%</option>
+          <option value="1.96" selected>95%</option>
+          <option value="2.576">99%</option>
+        </select>
+      </div>
+      <div>
+        <label for="d">Sai số tuyệt đối d</label>
+        <input id="d" type="number" min="0.000001" step="any" value="0.05">
+        <div class="note">Ví dụ tỷ lệ: 0,05 tương đương 5 điểm phần trăm.</div>
+      </div>
+    </div>
+
+    <div id="pWrap">
+      <label for="p">Tỷ lệ dự kiến p (nhập từ 0 đến 1)</label>
+      <input id="p" type="number" min="0.000001" max="0.999999" step="any" value="0.5">
+      <p class="note">Ví dụ: 37,2% nhập là 0,372. Nếu chưa có nghiên cứu trước, p = 0,5 thường cho cỡ mẫu lớn nhất khi ước lượng tỷ lệ.</p>
+    </div>
+
+    <div id="sdWrap" class="hidden">
+      <label for="sd">Độ lệch chuẩn σ</label>
+      <input id="sd" type="number" min="0.000001" step="any" value="7.25">
+      <p class="note">Lấy từ nghiên cứu trước hoặc nghiên cứu thí điểm; d phải cùng đơn vị với biến số.</p>
+    </div>
+
+    <div class="grid">
+      <div>
+        <label for="nonresponse">Dự phòng không đáp ứng (%)</label>
+        <input id="nonresponse" type="number" min="0" max="99" step="any" value="10">
+      </div>
+      <div>
+        <label for="population">Tổng thể hữu hạn N (không bắt buộc)</label>
+        <input id="population" type="number" min="1" step="1" placeholder="Để trống nếu không áp dụng">
+      </div>
+    </div>
+
+    <button id="calculate">Tính cỡ mẫu</button>
+    <div id="result" class="result" aria-live="polite">
+      <div class="note">Nhập thông số rồi nhấn “Tính cỡ mẫu”.</div>
+    </div>
+    <hr style="border:0;border-top:1px solid #e5e7eb;margin:22px 0 14px">
+    <p class="note"><strong>Lưu ý phương pháp:</strong> Kết quả là ước lượng cho công thức cơ bản với giả định lấy mẫu ngẫu nhiên đơn. Nếu thiết kế cụm, so sánh nhóm, nghiên cứu can thiệp, hồi quy hoặc CFA, cần tính cỡ mẫu theo mục tiêu và mô hình tương ứng. Hiệu chỉnh tổng thể hữu hạn chỉ nên dùng khi N xác định và thiết kế lấy mẫu phù hợp.</p>
+  </section>
+</main>
+<script>
+const kind = document.getElementById('kind');
+const pWrap = document.getElementById('pWrap');
+const sdWrap = document.getElementById('sdWrap');
+kind.addEventListener('change', () => {
+  const isProp = kind.value === 'proportion';
+  pWrap.classList.toggle('hidden', !isProp);
+  sdWrap.classList.toggle('hidden', isProp);
+});
+document.getElementById('calculate').addEventListener('click', () => {
+  const z = Number(document.getElementById('confidence').value);
+  const d = Number(document.getElementById('d').value);
+  const nr = Number(document.getElementById('nonresponse').value);
+  const Nraw = document.getElementById('population').value.trim();
+  const N = Nraw === '' ? null : Number(Nraw);
+  const result = document.getElementById('result');
+  if (!(d > 0) || !Number.isFinite(d)) {
+    result.innerHTML = '<strong>Vui lòng nhập sai số d lớn hơn 0.</strong>'; return;
+  }
+  if (!(nr >= 0 && nr < 100)) {
+    result.innerHTML = '<strong>Dự phòng không đáp ứng phải từ 0 đến dưới 100%.</strong>'; return;
+  }
+  let n0, formula, details;
+  if (kind.value === 'proportion') {
+    const p = Number(document.getElementById('p').value);
+    if (!(p > 0 && p < 1)) {
+      result.innerHTML = '<strong>p phải lớn hơn 0 và nhỏ hơn 1. Ví dụ 0,372.</strong>'; return;
+    }
+    n0 = z*z*p*(1-p)/(d*d);
+    formula = 'n₀ = Z² × p × (1 − p) / d²';
+    details = `Z = ${z}; p = ${p}; d = ${d}`;
+  } else {
+    const sd = Number(document.getElementById('sd').value);
+    if (!(sd > 0)) {
+      result.innerHTML = '<strong>Độ lệch chuẩn σ phải lớn hơn 0.</strong>'; return;
+    }
+    n0 = z*z*sd*sd/(d*d);
+    formula = 'n₀ = Z² × σ² / d²';
+    details = `Z = ${z}; σ = ${sd}; d = ${d}`;
+  }
+  let nBase = n0;
+  let finiteNote = '';
+  if (N !== null) {
+    if (!(N > 0) || !Number.isFinite(N)) {
+      result.innerHTML = '<strong>N phải là số nguyên dương.</strong>'; return;
+    }
+    if (N <= n0) {
+      nBase = N;
+      finiteNote = `Vì N (${N}) nhỏ hơn hoặc bằng n₀, công cụ giới hạn cỡ mẫu ở N. Hãy xác minh thiết kế và giả định.`;
+    } else {
+      nBase = n0 / (1 + (n0 - 1)/N);
+      finiteNote = `Đã áp dụng hiệu chỉnh tổng thể hữu hạn với N = ${N}.`;
+    }
+  }
+  const finalN = Math.ceil(nBase/(1-nr/100));
+  result.innerHTML = `
+    <div class="note">Cỡ mẫu tối thiểu trước dự phòng</div>
+    <div class="n">${Math.ceil(nBase)} người</div>
+    <p><strong>Sau dự phòng không đáp ứng ${nr}%:</strong> ${finalN} người</p>
+    <p class="formula">${formula}</p>
+    <p class="note">${details}<br>Giá trị chưa làm tròn n₀ = ${n0.toFixed(3)}; cỡ mẫu sau hiệu chỉnh tổng thể (nếu có) = ${nBase.toFixed(3)}.</p>
+    ${finiteNote ? `<p class="note">${finiteNote}</p>` : ''}
+    <p class="note">Cỡ mẫu cuối cùng được làm tròn lên số nguyên.</p>`;
+});
+</script>
+</body>
+</html>
